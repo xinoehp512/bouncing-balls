@@ -1,0 +1,273 @@
+/**
+Bouncing Balls
+https://www.khanacademy.org/computer-programming/bouncing-balls/6704155495464960
+
+Bouncing Balls 2
+https://www.khanacademy.org/computer-programming/bouncing-balls-2/6170382110523392
+
+Bouncing Balls 3
+https://www.khanacademy.org/computer-programming/bouncing-balls-3/5786006401024000
+
+Bouncing Balls War
+https://www.khanacademy.org/computer-programming/bouncing-balls-war/6629686556983296
+**/
+var animals=[];
+var fcolor=color(0, 0, 0);
+var randSign=function(){
+    return floor(random(0,2))*2-1;
+};
+var reScale=function(vector,scale){
+    var v=new PVector(vector.x,vector.y);
+    v.normalize();
+    v.mult(scale);
+    return v;
+};
+var rotateVector=function(vector,angle){
+    var x=vector.x;
+    var y=vector.y;
+    var nVector=new PVector(0,0);
+    nVector.x=x*cos(angle)-y*sin(angle);
+    nVector.y=y*cos(angle)+x*sin(angle);
+    return nVector;
+};
+var makeMoveState=function(){
+    return [new PVector(random(0,width),random(0,height)),new PVector(random(1,1.5)*randSign(),random(1,1.5)*randSign())];
+};
+/*var mutate=function(gene){
+    var newGene=Object.assign(gene,{});
+    var cMutations=10;
+    newGene.r=constrain(newGene.r+random(-cMutations,cMutations),0,255);
+    newGene.g=constrain(newGene.g+random(-cMutations,cMutations),0,255);
+    newGene.b=constrain(newGene.b+random(-cMutations,cMutations),0,255);
+    return newGene;
+};
+var cost=function(gene){
+    return gene.size/10+gene.g/10;
+};*/
+var Grid=function(animals,size){
+    this.animals=animals;
+    this.size=size;
+    this.squareSize=width/size;
+    this.grid=[];
+    for(var i=0; i<this.size; i++){
+        var row=[];
+        for(var j=0; j<this.size; j++){
+            row.push([]);
+        }
+        this.grid.push(row);
+    }
+};
+Grid.prototype.clear=function(){
+    this.grid=[];
+    for(var i=0; i<this.size; i++){
+        var row=[];
+        for(var j=0; j<this.size; j++){
+            row.push([]);
+        }
+        this.grid.push(row);
+    }
+};
+Grid.prototype.display=function(){
+    for(var x=0; x<width; x+=this.squareSize){
+        line(x,0,x,400);
+    }
+    for(var y=0; y<height; y+=this.squareSize){
+        line(0,y,400,y);
+    }
+};
+Grid.prototype.fill=function(animals){
+    for(var i=animals.length-1; i>=0; i--){
+        var animal=animals[i];
+        this.place(animal);
+    }
+};
+Grid.prototype.place=function(animal){
+    var leftSide=floor((animal.position.x-animal.size/2)/this.squareSize);
+    var rightSide=floor((animal.position.x+animal.size/2)/this.squareSize);
+    var upSide=floor((animal.position.y-animal.size/2)/this.squareSize);
+    var downSide=floor((animal.position.y+animal.size/2)/this.squareSize);
+    leftSide= leftSide<0?0:leftSide;
+    rightSide= rightSide>this.size-1?0:rightSide;
+    upSide= upSide<0?0:upSide;
+    downSide= downSide>this.size-1?0:downSide;
+    //println(this.squareSize);
+    this.grid[leftSide][upSide].push(animal);
+    if(leftSide!==rightSide){
+        this.grid[rightSide][upSide].push(animal);
+        if(upSide!==downSide){
+            this.grid[leftSide][downSide].push(animal);
+            this.grid[rightSide][downSide].push(animal);
+        }
+    } else if(upSide!==downSide){
+        this.grid[leftSide][downSide].push(animal);
+    }
+    
+};
+Grid.prototype.collide=function(){
+    for(var i=0; i<this.size; i++){
+        for(var j=0; j<this.size; j++){
+            var square=this.grid[i][j];
+            for(var k=square.length-1; k>=0; k--){
+                var ball1=square[k];
+                for(var l=square.length-1; l>k; l--){
+                    var ball2=square[l];
+                    if(dist(ball1.position.x,ball1.position.y,ball2.position.x,ball2.position.y)<=(ball1.size+ball2.size)/2){
+                        if(!ball1.eat(ball2)){
+                            ball2.eat(ball1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+var Ball=function(moveState,colorState){
+    this.position=moveState[0];
+    this.velocity=moveState[1];
+    this.size=10;
+    colorState[floor(random(0,3))]=255;
+    colorState[floor(random(0,3))]=255;
+    this.r=colorState[0];
+    this.g=colorState[1];
+    this.b=colorState[2];
+    
+};
+Ball.prototype.checkEdgesBounce=function(){ 
+    if(this.position.x<this.size/2){  
+        this.velocity.x*=-1;
+        this.position.x=this.size/2;
+    } else if(this.position.x>width-this.size/2){
+        this.velocity.x*=-1;
+        this.position.x=width-this.size/2;
+    }
+    if(this.position.y<this.size/2){
+        this.velocity.y*=-1;
+        this.position.y=this.size/2;
+    } else if(this.position.y>height-this.size/2){
+        this.velocity.y*=-1;
+        this.position.y=height-this.size/2;
+    }
+};
+Ball.prototype.eat=function(other){
+    //if(true){return true;}
+    var diff=PVector.sub(this.position,other.position);
+    var angle=atan2(diff.y,diff.x);
+    var overlap=(this.size+other.size)/2-diff.mag();
+    //println(overlap);
+    if(overlap>0){this.position.add(reScale(diff,overlap/2));other.position.sub(reScale(diff,overlap/2));}
+    var thisVel2=rotateVector(this.velocity,-angle);
+    var otherVel2=rotateVector(other.velocity,-angle);
+    var x=thisVel2.x;
+    thisVel2.x=otherVel2.x;
+    otherVel2.x=x;
+    this.velocity=rotateVector(thisVel2,angle);
+    other.velocity=rotateVector(otherVel2,angle);
+    {var r=(this.r+other.r)/2;
+    this.r=r;
+    other.r=r;
+    var g=(this.g+other.g)/2;
+    this.g=g;
+    other.g=g;
+    var b=(this.b+other.b)/2;
+    this.b=b;
+    other.b=b;}
+    return true;
+};
+Ball.prototype.display= function() {
+    fill(this.r,this.g,this.b);
+    ellipse(this.position.x,this.position.y,this.size,this.size);
+    fill(fcolor);
+};
+Ball.prototype.update=function() {
+    this.position.add(this.velocity);
+    this.checkEdgesBounce();
+    this.display();
+};
+/*var Animal=function(gene,moveState){
+    this.size=gene.size;
+    this.energy=gene.energy;
+    this.maxSize=gene.maxSize;
+    this.gene=gene;
+    this.position=moveState[0];
+    this.velocity=PVector.normalize(moveState[1]);
+    this.velocity.mult(gene.speed);
+    this.color=color(gene.r,gene.g,gene.b);
+    this.life=true;
+};
+
+Animal.prototype.display= function() {
+    fill(this.color);
+    ellipse(this.position.x,this.position.y,this.size,this.size);
+    fill(fcolor);
+};
+Animal.prototype.update=function(){
+    this.position.add(this.velocity);
+    this.size-=this.gene.speed*sq(this.size)/10000;
+    this.checkEdgesBounce();
+    this.display();
+    this.size+=this.gene.g/200;
+    //this.color=color(0, 0, 255);
+    if(this.size>=this.maxSize){
+        this.reproduce();
+    }
+    if(this.size<=0){
+        this.life=false;
+    }
+};
+Animal.prototype.checkEdgesBounce=function(){ 
+    if(this.position.x<this.size/2){  
+        this.velocity.x*=-1;
+        this.position.x=this.size/2;
+    } else if(this.position.x>width-this.size/2){
+        this.velocity.x*=-1;
+        this.position.x=width-this.size/2;
+    }
+    if(this.position.y<this.size/2){
+        this.velocity.y*=-1;
+        this.position.y=this.size/2;
+    } else if(this.position.y>height-this.size/2){
+        this.velocity.y*=-1;
+        this.position.y=height-this.size/2;
+    }
+};
+Animal.prototype.eat=function(other){
+    if(this.size>other.size && other.life){
+        other.life=false;
+        this.size+=other.size/9;
+        return true;
+    }
+    return false;
+};
+Animal.prototype.reproduce=function(){
+    var newGene=mutate(this.gene);
+    var eCost=cost(newGene);
+    if(eCost>this.size-this.gene.size){
+        this.size-=eCost;
+        var animal=new Animal(newGene,makeMoveState());
+        animals.push(animal);
+    }
+};
+/*for(var i=0; i<200; i++){
+    var s=10+random(-1,1);
+    var animal=new Animal({size:s,energy:5,speed:2,r:0,g:0,b:255,maxSize:s+3},makeMoveState());
+    animals.push(animal);
+}*/
+for(var i=0; i<50; i++){
+    var ball= new Ball(makeMoveState(),[0,0,0]);
+    animals.push(ball);
+}
+var grid=new Grid(animals,1);
+var draw= function() {
+    background(255, 255, 255);
+    grid.clear();
+    //grid.display();
+    grid.fill(animals);
+    grid.collide();
+    for(var i=animals.length-1; i>=0; i--){
+        var animal=animals[i];
+        animal.update();
+        /*if(!animal.life){
+            animals.splice(i,1);
+        }*/
+    }
+};
