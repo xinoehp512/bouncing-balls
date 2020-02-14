@@ -11,7 +11,10 @@ https://www.khanacademy.org/computer-programming/bouncing-balls-3/57860064010240
 Bouncing Balls War
 https://www.khanacademy.org/computer-programming/bouncing-balls-war/6629686556983296
 **/
+noStroke();
 var animals=[];
+var gravity=new PVector(0,0);
+var bounce=1;
 var fcolor=color(0, 0, 0);
 var randSign=function(){
     return floor(random(0,2))*2-1;
@@ -31,7 +34,9 @@ var rotateVector=function(vector,angle){
     return nVector;
 };
 var makeMoveState=function(){
-    return [new PVector(random(0,width),random(0,height)),new PVector(random(1,1.5)*randSign(),random(1,1.5)*randSign())];
+    var velocity=new PVector(1.5,0);
+    //println(velocity);
+    return [new PVector(random(0,width),random(0,height)),rotateVector(velocity,random(0,360))];
 };
 /*var mutate=function(gene){
     var newGene=Object.assign(gene,{});
@@ -121,12 +126,11 @@ Grid.prototype.collide=function(){
         }
     }
 };
-var Ball=function(moveState,colorState){
+var Ball=function(moveState,colorState,size){
     this.position=moveState[0];
     this.velocity=moveState[1];
-    this.size=10;
-    colorState[floor(random(0,3))]=255;
-    colorState[floor(random(0,3))]=255;
+    this.size=size;
+    this.mass=size;
     this.r=colorState[0];
     this.g=colorState[1];
     this.b=colorState[2];
@@ -134,17 +138,17 @@ var Ball=function(moveState,colorState){
 };
 Ball.prototype.checkEdgesBounce=function(){ 
     if(this.position.x<this.size/2){  
-        this.velocity.x*=-1;
+        this.velocity.x*=-bounce;
         this.position.x=this.size/2;
     } else if(this.position.x>width-this.size/2){
-        this.velocity.x*=-1;
+        this.velocity.x*=-bounce;
         this.position.x=width-this.size/2;
     }
     if(this.position.y<this.size/2){
-        this.velocity.y*=-1;
+        this.velocity.y*=-bounce;
         this.position.y=this.size/2;
     } else if(this.position.y>height-this.size/2){
-        this.velocity.y*=-1;
+        this.velocity.y*=-bounce;
         this.position.y=height-this.size/2;
     }
 };
@@ -157,12 +161,19 @@ Ball.prototype.eat=function(other){
     if(overlap>0){this.position.add(reScale(diff,overlap/2));other.position.sub(reScale(diff,overlap/2));}
     var thisVel2=rotateVector(this.velocity,-angle);
     var otherVel2=rotateVector(other.velocity,-angle);
-    var x=thisVel2.x;
-    thisVel2.x=otherVel2.x;
-    otherVel2.x=x;
+    var tx=thisVel2.x;
+    var ox=otherVel2.x;
+    /*thisVel2.x=ox;
+    otherVel2.x=tx;*/
+    var cm=this.mass+other.mass;
+    var m1=this.mass/cm;
+    var m2=other.mass/cm;
+    thisVel2.x=(m1-m2)*tx+2*m2*ox;
+    otherVel2.x=(m2-m1)*ox+2*m1*tx;
+    
     this.velocity=rotateVector(thisVel2,angle);
     other.velocity=rotateVector(otherVel2,angle);
-    {var r=(this.r+other.r)/2;
+    /*{var r=(this.r+other.r)/2;
     this.r=r;
     other.r=r;
     var g=(this.g+other.g)/2;
@@ -170,7 +181,7 @@ Ball.prototype.eat=function(other){
     other.g=g;
     var b=(this.b+other.b)/2;
     this.b=b;
-    other.b=b;}
+    other.b=b;}*/
     return true;
 };
 Ball.prototype.display= function() {
@@ -180,6 +191,7 @@ Ball.prototype.display= function() {
 };
 Ball.prototype.update=function() {
     this.position.add(this.velocity);
+    this.velocity.add(gravity);
     this.checkEdgesBounce();
     this.display();
 };
@@ -253,9 +265,16 @@ Animal.prototype.reproduce=function(){
     animals.push(animal);
 }*/
 for(var i=0; i<50; i++){
-    var ball= new Ball(makeMoveState(),[0,0,0]);
+    var r=random(0,255);var g=random(0,255);var b=random(0,255);
+    /*var c=255;
+    var d=r+g+b-c;
+    r-=d/3;g-=d/3;b-=d/3;*/
+    var ball= new Ball(makeMoveState(),[r,g,b],random(10,30));
     animals.push(ball);
 }
+/*var b=new Ball(makeMoveState(),[0,128,255],20);
+b.mass=1000;
+animals.push(b);*/
 var grid=new Grid(animals,1);
 var draw= function() {
     background(255, 255, 255);
