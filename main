@@ -14,8 +14,10 @@ https://www.khanacademy.org/computer-programming/bouncing-balls-war/662968655698
 noStroke();
 var animals=[];
 var gravity=new PVector(0,0);
-var bounce=1.0;
-var fcolor=color(0, 0, 0);
+var bounce=1;
+var fcolor=color(255, 255, 255);
+var teams=["red","blue","green"];
+var teamColors={"red":[255,0,0],"green":[0,255,0],"blue":[0,0,255]};
 var randSign=function(){
     return floor(random(0,2))*2-1;
 };
@@ -135,7 +137,12 @@ var Ball=function(moveState,colorState,size){
     this.g=colorState[1];
     this.b=colorState[2];
     this.life=true;
-    this.breaker=true;
+    this.breaker=false;
+    
+    this.team=teams[floor(random(0,3))];
+    /*this.r=(this.team==="red")*255;
+    this.g=(this.team==="green")*255;
+    this.b=(this.team==="blue")*255;*/
 };
 Ball.prototype.checkEdgesBounce=function(){ 
     if(this.position.x<this.size/2){  
@@ -155,6 +162,11 @@ Ball.prototype.checkEdgesBounce=function(){
 };
 Ball.prototype.getColor=function(){
     return [this.r,this.g,this.b];
+};
+Ball.prototype.setColor=function(color){
+    this.r=color[0];
+    this.g=color[1];
+    this.b=color[2];
 };
 Ball.prototype.getMoveState=function(){
     return [this.position,this.velocity];
@@ -189,15 +201,36 @@ Ball.prototype.eat=function(other){
     var b=(this.b+other.b)/2;
     this.b=b;
     other.b=b;}*/
-    if(this.size>other.size && this.breaker){
+    /*if(this.size>other.size && this.breaker){
         other.life=false;
     }
     else if(this.size<other.size && other.breaker){
         this.life=false;
+    }*/
+    /*if(this.team===other.team){
+        if(this.size>other.size){
+            this.size-=1;
+            other.size+=1;
+        }else if(this.size<other.size){
+            this.size+=1;
+            other.size-=1;
+        }
+    }else*/ 
+    if(this.size>other.size){
+        other.team=this.team;
+        other.setColor(this.getColor());
+        this.size-=1;
+        other.size+=1;
+    } else if(this.size<other.size){
+        this.team=other.team; 
+        this.setColor(other.getColor());
+        this.size+=1;
+        other.size-=1;
     }
     return true;
 };
 Ball.prototype.display= function() {
+    //this.setColor(teamColors[this.team]);
     if(this.breaker){
         fill(255-this.r, 255-this.g, 255-this.b,64);
         ellipse(this.position.x,this.position.y,this.size+3,this.size+3);
@@ -206,12 +239,17 @@ Ball.prototype.display= function() {
     ellipse(this.position.x,this.position.y,this.size,this.size);
     fill(fcolor);
 };
+
 Ball.prototype.update=function() {
     this.mass=this.size;
     this.position.add(this.velocity);
     this.velocity.add(gravity);
     this.checkEdgesBounce();
     this.display();
+};
+Ball.prototype.hide=function() {
+    fill(fcolor);
+    ellipse(this.position.x,this.position.y,this.size+1,this.size+1);
 };
 /*var Animal=function(gene,moveState){
     this.size=gene.size;
@@ -304,12 +342,12 @@ var draw= function() {
     for(var i=animals.length-1; i>=0; i--){
         var animal=animals[i];
         animal.update();
-        if(!animal.life){
+        if(!animal.life || ball.size<=0){
             animals.splice(i,1);
-            var ball= new Ball(animal.getMoveState(),animal.getColor(),animal.size-1);
-            if(ball.size>0){
+            //var ball= new Ball(animal.getMoveState(),animal.getColor(),animal.size-1);
+            /*if(ball.size>0){
                 animals.push(ball);
-            }
+            }*/
         }
     }
     fill(0, 0, 0);
