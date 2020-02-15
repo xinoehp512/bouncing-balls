@@ -14,7 +14,7 @@ https://www.khanacademy.org/computer-programming/bouncing-balls-war/662968655698
 noStroke();
 var animals=[];
 var gravity=new PVector(0,0);
-var bounce=1;
+var bounce=1.0;
 var fcolor=color(0, 0, 0);
 var randSign=function(){
     return floor(random(0,2))*2-1;
@@ -134,7 +134,8 @@ var Ball=function(moveState,colorState,size){
     this.r=colorState[0];
     this.g=colorState[1];
     this.b=colorState[2];
-    
+    this.life=true;
+    this.breaker=true;
 };
 Ball.prototype.checkEdgesBounce=function(){ 
     if(this.position.x<this.size/2){  
@@ -151,6 +152,12 @@ Ball.prototype.checkEdgesBounce=function(){
         this.velocity.y*=-bounce;
         this.position.y=height-this.size/2;
     }
+};
+Ball.prototype.getColor=function(){
+    return [this.r,this.g,this.b];
+};
+Ball.prototype.getMoveState=function(){
+    return [this.position,this.velocity];
 };
 Ball.prototype.eat=function(other){
     //if(true){return true;}
@@ -182,14 +189,25 @@ Ball.prototype.eat=function(other){
     var b=(this.b+other.b)/2;
     this.b=b;
     other.b=b;}*/
+    if(this.size>other.size && this.breaker){
+        other.life=false;
+    }
+    else if(this.size<other.size && other.breaker){
+        this.life=false;
+    }
     return true;
 };
 Ball.prototype.display= function() {
+    if(this.breaker){
+        fill(255-this.r, 255-this.g, 255-this.b,64);
+        ellipse(this.position.x,this.position.y,this.size+3,this.size+3);
+    }
     fill(this.r,this.g,this.b);
     ellipse(this.position.x,this.position.y,this.size,this.size);
     fill(fcolor);
 };
 Ball.prototype.update=function() {
+    this.mass=this.size;
     this.position.add(this.velocity);
     this.velocity.add(gravity);
     this.checkEdgesBounce();
@@ -276,6 +294,7 @@ for(var i=0; i<50; i++){
 b.mass=1000;
 animals.push(b);*/
 var grid=new Grid(animals,1);
+var s=0;
 var draw= function() {
     background(255, 255, 255);
     grid.clear();
@@ -285,8 +304,63 @@ var draw= function() {
     for(var i=animals.length-1; i>=0; i--){
         var animal=animals[i];
         animal.update();
-        /*if(!animal.life){
+        if(!animal.life){
             animals.splice(i,1);
-        }*/
+            var ball= new Ball(animal.getMoveState(),animal.getColor(),animal.size-1);
+            if(ball.size>0){
+                animals.push(ball);
+            }
+        }
     }
+    fill(0, 0, 0);
+    text(animals.length,0,10);
+    if(s<0){s=0;}
+    text(s,0,400);
+    text(bounce,384,10);
+};
+var l=true;
+mouseClicked=function(){
+    if(mouseButton===RIGHT){
+        return;
+    }
+    var r=random(0,255);var g=random(0,255);var b=random(0,255);
+    /*var c=255;
+    var d=r+g+b-c;
+    r-=d/3;g-=d/3;b-=d/3;*/
+    var state=makeMoveState();
+    state[0].x=mouseX;
+    state[0].y=mouseY;
+    var ball= new Ball(state,[r,g,b],s||random(10,30));
+    //ball.breaker=true;
+    animals.push(ball);
+    ball.display();
+};
+keyPressed=function(){
+    var r=floor(random(animals.length));
+    if(keyCode===DOWN){
+        animals[r].hide(); 
+        animals.splice(r,1);
+    }
+    if(keyCode===UP){
+        var b=new Ball(makeMoveState(),animals[r].getColor(),animals[r].size);
+        animals.push(b);
+        b.display();
+    }
+    if(keyCode===32){
+        if(l){noLoop();}else{loop();}
+        l=!l;
+    }
+    if(keyCode===RIGHT){
+        s+=1;
+    }
+    if(keyCode===LEFT){
+        s-=1;
+    }
+    if(keyCode===66){
+        bounce+=0.1;
+    }
+    if(keyCode===67){
+        bounce-=0.1;
+    }
+    //println(keyCode);
 };
